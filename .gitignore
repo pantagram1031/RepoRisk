@@ -6,5 +6,6 @@ venv/
 build/
 dist/
 *.egg-info/
-reports/report.md
-reports/report.json
+reports/
+reports-high/
+security-reports/

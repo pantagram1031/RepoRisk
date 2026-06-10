@@ -53,3 +53,16 @@ def test_cli_writes_reports(tmp_path: Path) -> None:
     assert (reports / "report.json").exists()
     data = json.loads((reports / "report.json").read_text(encoding="utf-8"))
     assert data["summary"]["total_findings"] == 1
+
+
+def test_reports_include_suppression_summary(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text("eval(user_input)  # reporisk: ignore PY-EVAL-001\n", encoding="utf-8")
+    result = scan_repository(tmp_path)
+
+    markdown = build_markdown_report(result)
+    json_report = build_json_report(result)
+
+    assert "Suppressed findings" in markdown
+    assert "PY-EVAL-001" in markdown
+    assert json_report["suppression_summary"]["total_suppressed"] == 1
+    assert json_report["suppressed_findings"][0]["finding"]["rule_id"] == "PY-EVAL-001"

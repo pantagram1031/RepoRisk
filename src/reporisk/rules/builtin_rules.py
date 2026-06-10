@@ -5,46 +5,14 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from reporisk.rules import python_ast
 from reporisk.rules.schema import Rule
 
 PY_EXTENSIONS = (".py",)
-TEXT_EXTENSIONS = (
-    ".py",
-    ".js",
-    ".ts",
-    ".json",
-    ".env",
-    ".yml",
-    ".yaml",
-    ".toml",
-    ".ini",
-    ".md",
-    ".txt",
-)
 
 
 def _regex(pattern: str, flags: int = re.IGNORECASE) -> re.Pattern[str]:
     return re.compile(pattern, flags)
-
-
-def _yaml_load_without_safe_loader(line: str, _path: Path, _line_number: int) -> bool:
-    if not re.search(r"\byaml\.load\s*\(", line):
-        return False
-    return not re.search(r"SafeLoader|safe_load|Loader\s*=\s*yaml\.SafeLoader", line)
-
-
-def _subprocess_shell_true(line: str, _path: Path, _line_number: int) -> bool:
-    return bool(
-        re.search(r"\bsubprocess\.(run|call|Popen|check_output|check_call)\s*\(", line)
-        and re.search(r"\bshell\s*=\s*True\b", line)
-    )
-
-
-def _requests_verify_false(line: str, _path: Path, _line_number: int) -> bool:
-    return bool(
-        re.search(r"\brequests\.(get|post|put|delete|patch|head|request)\s*\(", line)
-        and re.search(r"\bverify\s*=\s*False\b", line)
-    )
 
 
 def _possible_sql_concat(line: str, _path: Path, _line_number: int) -> bool:
@@ -112,7 +80,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="MD5 or SHA1 hashing is present; these algorithms are weak for security-sensitive uses.",
             remediation="Use SHA-256 or stronger algorithms, and use password hashing functions for passwords.",
-            pattern=_regex(r"\bhashlib\.(md5|sha1)\s*\(", 0),
+            ast_detector=python_ast.detect_weak_hash,
             extensions=PY_EXTENSIONS,
         ),
         Rule(
@@ -122,7 +90,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="eval() can execute arbitrary Python code if data is attacker-controlled.",
             remediation="Avoid eval(); use explicit parsing such as json.loads or safer control flow.",
-            pattern=_regex(r"\beval\s*\(", 0),
+            ast_detector=python_ast.detect_eval,
             extensions=PY_EXTENSIONS,
         ),
         Rule(
@@ -132,7 +100,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="exec() can execute arbitrary Python code if data is attacker-controlled.",
             remediation="Avoid exec(); replace dynamic execution with explicit functions or dispatch tables.",
-            pattern=_regex(r"\bexec\s*\(", 0),
+            ast_detector=python_ast.detect_exec,
             extensions=PY_EXTENSIONS,
         ),
         Rule(
@@ -142,7 +110,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="subprocess with shell=True can introduce command injection risks.",
             remediation="Pass commands as argument lists and keep shell=False unless a shell is strictly required.",
-            detector=_subprocess_shell_true,
+            ast_detector=python_ast.detect_subprocess_shell_true,
             extensions=PY_EXTENSIONS,
         ),
         Rule(
@@ -152,7 +120,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="yaml.load() without SafeLoader can deserialize unsafe objects.",
             remediation="Use yaml.safe_load() or yaml.load(..., Loader=yaml.SafeLoader).",
-            detector=_yaml_load_without_safe_loader,
+            ast_detector=python_ast.detect_yaml_load_without_safe_loader,
             extensions=PY_EXTENSIONS,
         ),
         Rule(
@@ -162,7 +130,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="pickle deserialization can execute code when reading untrusted data.",
             remediation="Avoid pickle for untrusted data; use safer formats such as JSON where possible.",
-            pattern=_regex(r"\bpickle\.(load|loads)\s*\(", 0),
+            ast_detector=python_ast.detect_pickle_load,
             extensions=PY_EXTENSIONS,
         ),
         Rule(
@@ -172,7 +140,7 @@ def get_builtin_rules() -> list[Rule]:
             category="risky-code",
             description="requests verify=False disables certificate validation.",
             remediation="Remove verify=False and fix certificate trust configuration instead.",
-            detector=_requests_verify_false,
+            ast_detector=python_ast.detect_requests_verify_false,
             extensions=PY_EXTENSIONS,
         ),
         Rule(

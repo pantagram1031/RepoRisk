@@ -5,8 +5,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from reporisk import __version__
-from reporisk.reporting.json_report import SEVERITIES, severity_summary
+from reporisk.reporting.json_report import severity_summary, suppression_summary
 from reporisk.scanner import ScanResult
+from reporisk.severity import REPORT_SEVERITIES
 
 
 def _escape_table(value: str) -> str:
@@ -16,6 +17,7 @@ def _escape_table(value: str) -> str:
 def build_markdown_report(result: ScanResult) -> str:
     """Build a clear human-readable Markdown report."""
     counts = severity_summary(result)
+    suppressed = suppression_summary(result)
     lines = [
         "# RepoRisk Scanner Report",
         "",
@@ -24,18 +26,27 @@ def build_markdown_report(result: ScanResult) -> str:
         f"- Scanned path: `{result.scanned_path}`",
         f"- Files scanned: `{result.files_scanned}`",
         f"- Total findings: `{len(result.findings)}`",
+        f"- Suppressed findings: `{suppressed['total_suppressed']}`",
         "",
         "## Severity Summary",
         "",
         "| Severity | Count |",
         "|---|---:|",
     ]
-    for severity in SEVERITIES:
+    for severity in REPORT_SEVERITIES:
         lines.append(f"| {severity.title()} | {counts.get(severity, 0)} |")
+
+    lines.extend(["", "## Suppression Summary", ""])
+    if suppressed["total_suppressed"] == 0:
+        lines.append("No findings were suppressed by inline comments.")
+    else:
+        lines.extend(["| Rule ID | Suppressed Count |", "|---|---:|"])
+        for rule_id, count in suppressed["by_rule"].items():
+            lines.append(f"| `{rule_id}` | {count} |")
 
     lines.extend(["", "## Findings", ""])
     if not result.findings:
-        lines.append("No findings detected by the enabled rules.")
+        lines.append("No findings detected by the enabled rules and filters.")
         return "\n".join(lines) + "\n"
 
     for index, finding in enumerate(result.findings, start=1):
