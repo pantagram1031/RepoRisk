@@ -45,6 +45,35 @@ def test_ast_allows_yaml_load_with_safeloader(tmp_path: Path) -> None:
     assert "PY-YAML-LOAD-001" not in ids
 
 
+def test_ast_allows_yaml_load_with_imported_safeloader(tmp_path: Path) -> None:
+    ids = _ids_for_source(
+        tmp_path,
+        "import yaml\nfrom yaml import SafeLoader\nyaml.load(config_text, Loader=SafeLoader)\n",
+    )
+    assert "PY-YAML-LOAD-001" not in ids
+
+
+def test_ast_allows_subprocess_shell_false(tmp_path: Path) -> None:
+    ids = _ids_for_source(
+        tmp_path,
+        "import subprocess\nsubprocess.run(['echo', 'demo'], shell=False)\n",
+    )
+    assert "PY-SUBPROCESS-SHELL-TRUE-001" not in ids
+
+
+def test_ast_allows_requests_verify_true(tmp_path: Path) -> None:
+    ids = _ids_for_source(
+        tmp_path,
+        "import requests\nrequests.get('https://example.invalid', verify=True)\n",
+    )
+    assert "PY-REQUESTS-VERIFY-FALSE-001" not in ids
+
+
+def test_ast_allows_sha256(tmp_path: Path) -> None:
+    ids = _ids_for_source(tmp_path, "import hashlib\nhashlib.sha256(b'demo').hexdigest()\n")
+    assert "PY-WEAK-HASH-001" not in ids
+
+
 def test_ast_detects_pickle_aliases(tmp_path: Path) -> None:
     ids = _ids_for_source(tmp_path, "from pickle import loads\nloads(blob)\n")
     assert "PY-PICKLE-001" in ids

@@ -7,6 +7,9 @@ from reporisk.reporting.markdown import build_markdown_report
 from reporisk.scanner import scan_repository
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
 def test_scanner_ignores_common_directories(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("eval(user_input)\n", encoding="utf-8")
     ignored = tmp_path / ".git"
@@ -66,3 +69,11 @@ def test_reports_include_suppression_summary(tmp_path: Path) -> None:
     assert "PY-EVAL-001" in markdown
     assert json_report["suppression_summary"]["total_suppressed"] == 1
     assert json_report["suppressed_findings"][0]["finding"]["rule_id"] == "PY-EVAL-001"
+
+
+def test_safe_sample_has_no_findings() -> None:
+    result = scan_repository(REPO_ROOT / "examples" / "safe_sample")
+
+    assert result.files_scanned >= 2
+    assert result.findings == []
+    assert result.suppressed_findings == []
