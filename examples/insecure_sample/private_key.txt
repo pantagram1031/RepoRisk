@@ -1,0 +1,3 @@
+-----BEGIN PRIVATE KEY-----
+This is placeholder sample text, not a real private key.
+-----END PRIVATE KEY-----
