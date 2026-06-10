@@ -185,6 +185,8 @@ I built RepoRisk as a defensive cybersecurity portfolio project to practice secu
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Validation notes](docs/VALIDATION.md)
+- [Validation results](docs/VALIDATION_RESULTS.md)
+- [Review checklist](docs/REVIEW_CHECKLIST.md)
 - [Changelog](CHANGELOG.md)
 
 ## Running tests
