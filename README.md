@@ -187,10 +187,13 @@ I built RepoRisk as a defensive cybersecurity portfolio project to practice secu
 - [Validation notes](docs/VALIDATION.md)
 - [Validation results](docs/VALIDATION_RESULTS.md)
 - [Review checklist](docs/REVIEW_CHECKLIST.md)
+- [Project notes](docs/PROJECT_NOTES.md)
+- [Roadmap](ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
 
 ## Running tests
 
 ```bash
-pytest
+python -m pytest
 ```

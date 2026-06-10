@@ -8,4 +8,5 @@ dist/
 *.egg-info/
 reports/
 reports-high/
+reports-safe/
 security-reports/
