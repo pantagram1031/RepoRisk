@@ -16,6 +16,19 @@ def test_inline_suppression_all_rules(tmp_path: Path) -> None:
     assert result.suppressed_findings[0].finding.rule_id == "PY-EVAL-001"
 
 
+def test_inline_suppression_only_applies_to_same_line(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "eval(user_input)  # reporisk: ignore\n"
+        "exec(dynamic_code)\n",
+        encoding="utf-8",
+    )
+
+    result = scan_repository(tmp_path)
+
+    assert [finding.rule_id for finding in result.findings] == ["PY-EXEC-001"]
+    assert [item.finding.rule_id for item in result.suppressed_findings] == ["PY-EVAL-001"]
+
+
 def test_inline_suppression_specific_rule(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text(
         "eval(user_input)  # reporisk: ignore PY-EVAL-001\n"
@@ -29,6 +42,18 @@ def test_inline_suppression_specific_rule(tmp_path: Path) -> None:
     assert len(result.suppressed_findings) == 1
 
 
+def test_inline_suppression_specific_rule_leaves_other_same_line_findings(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "eval(user_input); exec(dynamic_code)  # reporisk: ignore PY-EVAL-001\n",
+        encoding="utf-8",
+    )
+
+    result = scan_repository(tmp_path)
+
+    assert [finding.rule_id for finding in result.findings] == ["PY-EXEC-001"]
+    assert [item.finding.rule_id for item in result.suppressed_findings] == ["PY-EVAL-001"]
+
+
 def test_min_severity_filters_visible_findings(tmp_path: Path) -> None:
     (tmp_path / "app.py").write_text("hashlib.md5(b'demo')\neval(user_input)\n", encoding="utf-8")
     result = scan_repository(tmp_path)
@@ -36,6 +61,25 @@ def test_min_severity_filters_visible_findings(tmp_path: Path) -> None:
     filtered = filter_result_by_severity(result, "high")
 
     assert {finding.rule_id for finding in filtered.findings} == {"PY-EVAL-001"}
+
+
+def test_min_severity_high_keeps_high_and_critical_findings(tmp_path: Path) -> None:
+    (tmp_path / "app.py").write_text(
+        "import hashlib\n"
+        "hashlib.md5(b'demo')\n"
+        "eval(user_input)\n"
+        "AWS_ACCESS_KEY_ID = 'AKIAIOSFODNN7EXAMPLE'\n",
+        encoding="utf-8",
+    )
+    result = scan_repository(tmp_path)
+
+    filtered = filter_result_by_severity(result, "high")
+
+    assert {finding.rule_id for finding in filtered.findings} == {
+        "PY-EVAL-001",
+        "SECRET-AWS-KEY-001",
+    }
+    assert "PY-WEAK-HASH-001" not in {finding.rule_id for finding in filtered.findings}
 
 
 def test_cli_fail_on_returns_nonzero(tmp_path: Path) -> None:

@@ -1,0 +1,4 @@
+debug: false
+cors_allowed_origins:
+  - "https://service.example.invalid"
+placeholder_value: "replace-in-local-env"
